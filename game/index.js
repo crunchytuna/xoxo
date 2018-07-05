@@ -1,5 +1,4 @@
 import { Map } from 'immutable';
-let board = Map();
 
 const flip = function(turn) {
   if (turn === 'X') {
@@ -15,25 +14,26 @@ export const move = (turn, position) => ({
   turn: turn,
 });
 
-export default function reducer(state = { board: board, turn: 'X' }, action) {
+function turnReducer(turn = 'X', action) {
   if (action.type === 'move') {
-    return {
-      board: state.board.setIn(action.position, action.turn),
-      turn: flip(state.turn),
-    };
-  } else return state;
+    return flip(turn);
+  } else return turn;
 }
 
+function boardReducer(board = Map(), action) {
+  if (action.type === 'move') return board.setIn(action.position, action.turn);
+  return board;
+}
 
 const streak = (board, firstCoord, ...remainingCoords) => {
   let xCount = 0;
   let oCount = 0;
-
-  for (let i = 1; i < arguments.length; i++) {
-    if (board.getIn(arguments[i]) === 'X') {
+  const args = [firstCoord, ...remainingCoords];
+  for (let i = 0; i < args.length; i++) {
+    if (board.getIn(args[i]) === 'X') {
       xCount++;
       if (xCount === 3) return 'X';
-    } else if (board.getIn(arguments[i]) === 'O') {
+    } else if (board.getIn(args[i]) === 'O') {
       oCount++;
       if (oCount === 3) return 'O';
     }
@@ -78,16 +78,27 @@ const winner = function(board) {
   if (result) {
     return result;
   }
-
+  // console.log('hi im inside winner');
   for (let i = 0; i < 3; i++) {
-    for (let j = 0; j < 3; i++) {
-      if (board.hasIn([i][j]) === null) {
+    for (let j = 0; j < 3; j++) {
+      if (!board.getIn([i, j])) {
         return null;
       }
     }
   }
 
-
-  return 'draw'
-
+  return 'draw';
 };
+
+export default function reducer(state = {}, action) {
+  // console.log('hi, my names josh im in the reducer');
+  const newBoard = boardReducer(state.board, action);
+  // console.log('hi im inbetween new board and winnner state', newBoard);
+  const winnerState = winner(newBoard);
+  // console.log(winner(newBoard));
+  return {
+    board: newBoard,
+    turn: turnReducer(state.turn, action),
+    winner: winnerState,
+  };
+}
